@@ -57,7 +57,7 @@ class Firework {
     }
 
     createExplosion(x, y) {
-        const particleCount = 100;
+        const particleCount = 200; // Increased from 100
         const color = {
             r: Math.floor(Math.random() * 255),
             g: Math.floor(Math.random() * 255),
@@ -66,7 +66,7 @@ class Firework {
 
         for (let i = 0; i < particleCount; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = Math.random() * 3 + 1;
+            const speed = Math.random() * 5 + 2; // Increased speed/spread
             this.particles.push({
                 x: x,
                 y: y,

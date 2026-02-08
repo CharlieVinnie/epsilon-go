@@ -72,7 +72,11 @@ function startGame() {
     
     cellSize = (canvas.width - 2 * padding) / (boardSize - 1);
     
-    drawBoard(result.board);
+    let lastMove = null;
+    if (result.lastMove && result.lastMove.length === 2) {
+        lastMove = { r: result.lastMove[0], c: result.lastMove[1] };
+    }
+    drawBoard(result.board, lastMove);
 }
 
 function handleBoardClick(e) {
@@ -100,7 +104,10 @@ function handleBoardClick(e) {
         if (!result.valid && !result.error && !result.gameOver) {
             console.log("Invalid move");
         } else if (result.valid) {
-            drawBoard(result.board);
+            let lastMove = null;
+            if (result.lastMove) lastMove = { r: result.lastMove[0], c: result.lastMove[1] };
+            
+            drawBoard(result.board, lastMove);
             
             if (result.gameOver) {
                 endGame(result.winner);
@@ -109,7 +116,12 @@ function handleBoardClick(e) {
                 // 2. Delay then Bot Move
                 setTimeout(() => {
                    const botResult = window.resolveBotMove(userColor);
-                   drawBoard(botResult.board);
+                   
+                   let botLastMove = null;
+                   if (botResult.lastMove) botLastMove = { r: botResult.lastMove[0], c: botResult.lastMove[1] };
+
+                   drawBoard(botResult.board, botLastMove);
+                   
                    if (botResult.gameOver) {
                        endGame(botResult.winner);
                    } else {
@@ -146,7 +158,7 @@ function endGame(winnerName) {
     }
 }
 
-function drawBoard(flatBoard) {
+function drawBoard(flatBoard, lastMove = null) {
     // Clear
     ctx.fillStyle = '#dcb35c';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -180,10 +192,12 @@ function drawBoard(flatBoard) {
     for (let r = 0; r < boardSize; r++) {
         for (let c = 0; c < boardSize; c++) {
             const val = flatBoard[r * boardSize + c];
+            const isLastMove = lastMove && lastMove.r === r && lastMove.c === c;
+            
             if (val === 1) { // Black
-                drawStone(r, c, 'black');
+                drawStone(r, c, 'black', isLastMove);
             } else if (val === 2) { // White
-                drawStone(r, c, 'white');
+                drawStone(r, c, 'white', isLastMove);
             }
         }
     }
@@ -198,7 +212,7 @@ function drawDot(row, col) {
     ctx.fill();
 }
 
-function drawStone(row, col, color) {
+function drawStone(row, col, color, isLastMove = false) {
     const x = padding + col * cellSize;
     const y = padding + row * cellSize;
     const radius = cellSize * 0.45;
@@ -230,6 +244,14 @@ function drawStone(row, col, color) {
     ctx.shadowBlur = 0; 
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+
+    // Draw last move marker
+    if (isLastMove) {
+        ctx.beginPath();
+        ctx.arc(x, y, radius * 0.3, 0, 2 * Math.PI);
+        ctx.fillStyle = color === 'black' ? '#ff3333' : '#cc0000'; // Red dot
+        ctx.fill();
+    }
 }
 
 function updateStatus(msg) {

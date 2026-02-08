@@ -39,21 +39,19 @@ func startGame(this js.Value, args []js.Value) interface{} {
 	}
 
 	// If User is White (2), Bot is Black (1) and plays first.
+	var lastMove []interface{}
 	if userColor == White {
 		botMoveX, botMoveY := findBotMove(Black)
 		if botMoveX != -1 {
 			playMove(botMoveX, botMoveY, Black)
+			lastMove = []interface{}{botMoveX, botMoveY}
 		}
 	}
 
 	return map[string]interface{}{
-		"board": flattenBoard(),
+		"board":    flattenBoard(),
+		"lastMove": lastMove,
 	}
-}
-
-func humanMove(this js.Value, args []js.Value) interface{} {
-	// Deprecated: logic split into resolveHumanMove and resolveBotMove
-	return nil
 }
 
 func resolveHumanMove(this js.Value, args []js.Value) interface{} {
@@ -72,6 +70,7 @@ func resolveHumanMove(this js.Value, args []js.Value) interface{} {
 
 	// 2. Play Human Move
 	playMove(x, y, userColor)
+	lastMove := []interface{}{x, y}
 
 	// 3. Check Game Over (if bot has no moves)
 	botMoveX, _ := findBotMove(botColor)
@@ -93,13 +92,15 @@ func resolveHumanMove(this js.Value, args []js.Value) interface{} {
 			"board":      flattenBoard(),
 			"winner":     winner, 
 			"gameOver":   true,
+			"lastMove":   lastMove,
 		}
 	}
 
 	return map[string]interface{}{
-		"valid":   true,
-		"board":   flattenBoard(),
-		"botTurn": true, // Signal to frontend to trigger bot move
+		"valid":    true,
+		"board":    flattenBoard(),
+		"botTurn":  true, // Signal to frontend to trigger bot move
+		"lastMove": lastMove,
 	}
 }
 
@@ -123,6 +124,7 @@ func resolveBotMove(this js.Value, args []js.Value) interface{} {
 
 	// 4. Play Bot Move
 	playMove(botMoveX, botMoveY, botColor)
+	lastMove := []interface{}{botMoveX, botMoveY}
 
 	// 5. Check Game Over (if human has no moves)
 	humanCanMove := hasLegalMove(userColor)
@@ -130,6 +132,7 @@ func resolveBotMove(this js.Value, args []js.Value) interface{} {
 	res := map[string]interface{}{
 		"board":    flattenBoard(),
 		"gameOver": !humanCanMove,
+		"lastMove": lastMove,
 	}
 	
 	if !humanCanMove {
