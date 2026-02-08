@@ -19,7 +19,9 @@ var (
 func main() {
 	c := make(chan struct{}, 0)
 	js.Global().Set("startGame", js.FuncOf(startGame))
-	js.Global().Set("humanMove", js.FuncOf(humanMove))
+	// js.Global().Set("humanMove", js.FuncOf(humanMove)) // Deprecated
+	js.Global().Set("resolveHumanMove", js.FuncOf(resolveHumanMove))
+	js.Global().Set("resolveBotMove", js.FuncOf(resolveBotMove))
 	fmt.Println("Go Bot WASM Initialized")
 	<-c
 }
@@ -50,6 +52,11 @@ func startGame(this js.Value, args []js.Value) interface{} {
 }
 
 func humanMove(this js.Value, args []js.Value) interface{} {
+	// Deprecated: logic split into resolveHumanMove and resolveBotMove
+	return nil
+}
+
+func resolveHumanMove(this js.Value, args []js.Value) interface{} {
 	if len(args) < 3 {
 		return map[string]interface{}{"error": "missing arguments (x, y, userColor)"}
 	}
@@ -67,24 +74,50 @@ func humanMove(this js.Value, args []js.Value) interface{} {
 	playMove(x, y, userColor)
 
 	// 3. Check Game Over (if bot has no moves)
-	botMoveX, botMoveY := findBotMove(botColor)
+	botMoveX, _ := findBotMove(botColor)
 	if botMoveX == -1 {
 		winner := "Black"
 		if userColor == Black {
 			winner = "Black (User)"
 		} else {
-			winner = "Black (Bot)"
+			winner = "Black (Bot)" // Should not happen if userColor is Black
 		}
+		// If user is Black, Bot is White. If Bot has no moves, User Wins (Black).
 
+		if userColor == White {
+			winner = "White (User)"
+		}
+		
 		return map[string]interface{}{
 			"valid":      true,
 			"board":      flattenBoard(),
-			"winner":     winner, // Player with no moves loses, so other player wins. Wait.
-			// Rule: "player without a legal move loses".
-			// If Bot has no move -> Bot loses -> User wins.
-			// Whoever that is.
-			// Actually simpler: If I just played, and you have no moves, I win.
+			"winner":     winner, 
 			"gameOver":   true,
+		}
+	}
+
+	return map[string]interface{}{
+		"valid":   true,
+		"board":   flattenBoard(),
+		"botTurn": true, // Signal to frontend to trigger bot move
+	}
+}
+
+func resolveBotMove(this js.Value, args []js.Value) interface{} {
+	if len(args) < 1 {
+		return map[string]interface{}{"error": "missing arguments (userColor)"}
+	}
+	userColor := args[0].Int()
+	botColor := 3 - userColor
+
+	botMoveX, botMoveY := findBotMove(botColor)
+	// This check should generally pass because resolveHumanMove checked it, 
+	// but good to be safe.
+	if botMoveX == -1 {
+         // Should have been caught in resolveHumanMove, but handle gracefully
+		return map[string]interface{}{
+			"gameOver": true,
+            "winner": "User", // Simplification
 		}
 	}
 
@@ -95,7 +128,6 @@ func humanMove(this js.Value, args []js.Value) interface{} {
 	humanCanMove := hasLegalMove(userColor)
 
 	res := map[string]interface{}{
-		"valid":    true,
 		"board":    flattenBoard(),
 		"gameOver": !humanCanMove,
 	}

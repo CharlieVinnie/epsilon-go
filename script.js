@@ -94,16 +94,28 @@ function handleBoardClick(e) {
     }
 
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
-        const result = window.humanMove(row, col, userColor);
+        // 1. Human Move
+        const result = window.resolveHumanMove(row, col, userColor);
         
         if (!result.valid && !result.error && !result.gameOver) {
             console.log("Invalid move");
         } else if (result.valid) {
             drawBoard(result.board);
+            
             if (result.gameOver) {
                 endGame(result.winner);
-            } else {
-                updateStatus(`Your Turn (${userColor === 1 ? 'Black' : 'White'})`);
+            } else if (result.botTurn) {
+                updateStatus("Bot Thinking...");
+                // 2. Delay then Bot Move
+                setTimeout(() => {
+                   const botResult = window.resolveBotMove(userColor);
+                   drawBoard(botResult.board);
+                   if (botResult.gameOver) {
+                       endGame(botResult.winner);
+                   } else {
+                       updateStatus(`Your Turn (${userColor === 1 ? 'Black' : 'White'})`);
+                   }
+                }, 500); // 500ms delay
             }
         }
     }
