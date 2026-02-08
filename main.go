@@ -25,48 +25,74 @@ func main() {
 }
 
 func startGame(this js.Value, args []js.Value) interface{} {
-	if len(args) < 1 {
-		return "Error: arguments missing"
+	if len(args) < 2 {
+		return "Error: arguments missing (size, userColor)"
 	}
 	size = args[0].Int()
+	userColor := args[1].Int() // 1=Black, 2=White
+
 	board = make([][]int, size)
 	for i := range board {
 		board[i] = make([]int, size)
 	}
-	return nil
+
+	// If User is White (2), Bot is Black (1) and plays first.
+	if userColor == White {
+		botMoveX, botMoveY := findBotMove(Black)
+		if botMoveX != -1 {
+			playMove(botMoveX, botMoveY, Black)
+		}
+	}
+
+	return map[string]interface{}{
+		"board": flattenBoard(),
+	}
 }
 
 func humanMove(this js.Value, args []js.Value) interface{} {
-	if len(args) < 2 {
-		return map[string]interface{}{"error": "missing coordinates"}
+	if len(args) < 3 {
+		return map[string]interface{}{"error": "missing arguments (x, y, userColor)"}
 	}
 	x := args[0].Int()
 	y := args[1].Int()
+	userColor := args[2].Int()
+	botColor := 3 - userColor
 
 	// 1. Validate Human Move
-	if !isLegal(x, y, Black) {
+	if !isLegal(x, y, userColor) {
 		return map[string]interface{}{"valid": false}
 	}
 
 	// 2. Play Human Move
-	playMove(x, y, Black)
+	playMove(x, y, userColor)
 
 	// 3. Check Game Over (if bot has no moves)
-	botMoveX, botMoveY := findBotMove()
+	botMoveX, botMoveY := findBotMove(botColor)
 	if botMoveX == -1 {
+		winner := "Black"
+		if userColor == Black {
+			winner = "Black (User)"
+		} else {
+			winner = "Black (Bot)"
+		}
+
 		return map[string]interface{}{
 			"valid":      true,
 			"board":      flattenBoard(),
-			"winner":     "Black (User)",
+			"winner":     winner, // Player with no moves loses, so other player wins. Wait.
+			// Rule: "player without a legal move loses".
+			// If Bot has no move -> Bot loses -> User wins.
+			// Whoever that is.
+			// Actually simpler: If I just played, and you have no moves, I win.
 			"gameOver":   true,
 		}
 	}
 
 	// 4. Play Bot Move
-	playMove(botMoveX, botMoveY, White)
+	playMove(botMoveX, botMoveY, botColor)
 
 	// 5. Check Game Over (if human has no moves)
-	humanCanMove := hasLegalMove(Black)
+	humanCanMove := hasLegalMove(userColor)
 
 	res := map[string]interface{}{
 		"valid":    true,
@@ -75,16 +101,21 @@ func humanMove(this js.Value, args []js.Value) interface{} {
 	}
 	
 	if !humanCanMove {
-		res["winner"] = "White (Bot)"
+		// Human has no move -> Human loses -> Bot wins
+		if botColor == Black {
+			res["winner"] = "Black (Bot)"
+		} else {
+			res["winner"] = "White (Bot)"
+		}
 	}
 
 	return res
 }
 
-func findBotMove() (int, int) {
+func findBotMove(color int) (int, int) {
 	for r := 0; r < size; r++ {
 		for c := 0; c < size; c++ {
-			if isLegal(r, c, White) {
+			if isLegal(r, c, color) {
 				return r, c
 			}
 		}

@@ -3,8 +3,9 @@ let mod, inst;
 let canvas, ctx;
 let boardSize;
 let cellSize;
-let padding = 30;
+let padding = 50; // Increased padding for margins
 let gameActive = false;
+let userColor = 1; // 1=Black, 2=White
 
 document.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('goBoard');
@@ -23,23 +24,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function startGame() {
     boardSize = parseInt(document.getElementById('boardSize').value);
+    userColor = parseInt(document.getElementById('userColor').value);
+    
     if (!window.startGame) {
         alert("WASM not loaded yet, please wait...");
         return;
     }
 
-    window.startGame(boardSize);
+    // startGame return initial board state (relevant if bot moves first)
+    const result = window.startGame(boardSize, userColor);
+    
     gameActive = true;
-    updateStatus("Your Turn (Black)");
+    
+    let statusMsg = "Your Turn (Black)";
+    if (userColor === 2) {
+        statusMsg = "Your Turn (White) - Bot moved first";
+    }
+    updateStatus(statusMsg);
     
     // Resize canvas
-    const maxSize = Math.min(window.innerWidth - 40, 600);
-    canvas.width = maxSize;
-    canvas.height = maxSize;
+    // Ensure canvas is large enough for padding
+    const minSize = 400;
+    const maxSize = Math.min(window.innerWidth - 60, 800);
+    const size = Math.max(minSize, maxSize);
     
+    canvas.width = size;
+    canvas.height = size;
+    
+    // Recalculate cell size based on new padding
+    // Available width = total width - 2 * padding
     cellSize = (canvas.width - 2 * padding) / (boardSize - 1);
     
-    drawBoard([]);
+    drawBoard(result.board);
 }
 
 function handleBoardClick(e) {
@@ -50,22 +66,22 @@ function handleBoardClick(e) {
     const y = e.clientY - rect.top;
 
     // Convert pixel to grid coordinates
-    // We need to find closest intersection.
-    // x = padding + col * cellSize
-    // col = (x - padding) / cellSize
-    
     const col = Math.round((x - padding) / cellSize);
     const row = Math.round((y - padding) / cellSize);
 
+    // Simple bounds check to prevent clicking way outside
+    const clickX = padding + col * cellSize;
+    const clickY = padding + row * cellSize;
+    const dist = Math.sqrt((x-clickX)**2 + (y-clickY)**2);
+    
+    if (dist > cellSize / 2) {
+        return; // Clicked too far from intersection
+    }
+
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
-        // Send to Go (row, col)
-        // Note: Go logic expects (row, col). Let's be consistent.
-        
-        const result = window.humanMove(row, col);
+        const result = window.humanMove(row, col, userColor);
         
         if (!result.valid && !result.error && !result.gameOver) {
-            // Invalid move, shake or something?
-            // For now just ignore
             console.log("Invalid move");
         } else if (result.valid) {
             drawBoard(result.board);
@@ -73,7 +89,7 @@ function handleBoardClick(e) {
                 gameActive = false;
                 updateStatus(`Game Over! Winner: ${result.winner}`);
             } else {
-                updateStatus("Your Turn (Black)");
+                updateStatus(`Your Turn (${userColor === 1 ? 'Black' : 'White'})`);
             }
         }
     }
@@ -82,7 +98,7 @@ function handleBoardClick(e) {
 function drawBoard(flatBoard) {
     // Clear
     ctx.fillStyle = '#dcb35c';
-    ctx.fillRect(0, 0, canvas.width, canvas.height); // Redraw background to clear previous stones
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Draw Grid
     ctx.beginPath();
@@ -100,8 +116,13 @@ function drawBoard(flatBoard) {
     }
     ctx.stroke();
     
-    // Draw Star points (optional, maybe later)
-
+    // Draw Star points (classic positions 3, 9, 15 etc depending on board size)
+    // Simplified for now: Center dot for odd sizes
+    if (boardSize % 2 !== 0) {
+        const center = (boardSize - 1) / 2;
+        drawDot(center, center);
+    }
+    
     // Draw Stones
     if (!flatBoard || flatBoard.length === 0) return;
 
@@ -117,6 +138,15 @@ function drawBoard(flatBoard) {
     }
 }
 
+function drawDot(row, col) {
+    const x = padding + col * cellSize;
+    const y = padding + row * cellSize;
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, 2 * Math.PI);
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+}
+
 function drawStone(row, col, color) {
     const x = padding + col * cellSize;
     const y = padding + row * cellSize;
@@ -126,14 +156,11 @@ function drawStone(row, col, color) {
     ctx.arc(x, y, radius, 0, 2 * Math.PI);
     
     if (color === 'black') {
-        ctx.fillStyle = '#000000';
-        // Add a subtle shine
         const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
         grad.addColorStop(0, '#555');
         grad.addColorStop(1, '#000');
         ctx.fillStyle = grad;
     } else {
-        ctx.fillStyle = '#ffffff';
          const grad = ctx.createRadialGradient(x - radius/3, y - radius/3, radius/10, x, y, radius);
         grad.addColorStop(0, '#fff');
         grad.addColorStop(1, '#ddd');
@@ -141,12 +168,15 @@ function drawStone(row, col, color) {
     }
     
     ctx.fill();
-    ctx.shadowBlur = 5;
-    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    
+    // Shadow
+    ctx.shadowBlur = 4;
+    ctx.shadowColor = "rgba(0,0,0,0.4)";
     ctx.shadowOffsetX = 2;
     ctx.shadowOffsetY = 2;
-    ctx.stroke();
-    ctx.shadowBlur = 0; // Reset
+    ctx.stroke(); // border
+    
+    ctx.shadowBlur = 0; 
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
 }

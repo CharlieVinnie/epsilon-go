@@ -41,19 +41,40 @@ h1 {
     margin-bottom: 1.5rem;
     display: flex;
     justify-content: center;
-    gap: 1rem;
-    align-items: center;
+    gap: 1.5rem;
+    align-items: flex-end;
 }
 
-input {
+.control-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+}
+
+label {
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+select, input {
     background: rgba(0, 0, 0, 0.3);
     border: 1px solid rgba(255, 255, 255, 0.2);
     color: white;
     padding: 0.5rem;
     border-radius: 8px;
     font-family: inherit;
+    font-size: 1rem;
+}
+
+input {
     width: 60px;
     text-align: center;
+}
+
+select {
+    width: 140px;
+    cursor: pointer;
 }
 
 button {
