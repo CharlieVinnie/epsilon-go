@@ -7,9 +7,25 @@ let padding = 50; // Increased padding for margins
 let gameActive = false;
 let userColor = 1; // 1=Black, 2=White
 
+let fireworkEffect;
+
 document.addEventListener('DOMContentLoaded', () => {
     canvas = document.getElementById('goBoard');
     ctx = canvas.getContext('2d');
+    
+    // Init fireworks
+    const fCanvas = document.getElementById('fireworksCanvas');
+    fCanvas.width = window.innerWidth;
+    fCanvas.height = window.innerHeight;
+    const fCtx = fCanvas.getContext('2d');
+    fireworkEffect = new Firework(fCtx, fCanvas.width, fCanvas.height);
+
+    window.addEventListener('resize', () => {
+        fCanvas.width = window.innerWidth;
+        fCanvas.height = window.innerHeight;
+        fireworkEffect.width = fCanvas.width;
+        fireworkEffect.height = fCanvas.height;
+    });
     
     // Load WASM
     WebAssembly.instantiateStreaming(fetch("main.wasm"), go.importObject).then(async (result) => {
@@ -19,6 +35,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('startBtn').addEventListener('click', startGame);
+    document.getElementById('restartBtn').addEventListener('click', () => {
+        document.getElementById('gameOverOverlay').classList.remove('visible');
+        fireworkEffect.stop();
+        // Clear fireworks canvas
+        fCtx.clearRect(0, 0, fCanvas.width, fCanvas.height);
+        startGame();
+    });
     canvas.addEventListener('click', handleBoardClick);
 });
 
@@ -31,9 +54,7 @@ function startGame() {
         return;
     }
 
-    // startGame return initial board state (relevant if bot moves first)
     const result = window.startGame(boardSize, userColor);
-    
     gameActive = true;
     
     let statusMsg = "Your Turn (Black)";
@@ -42,8 +63,6 @@ function startGame() {
     }
     updateStatus(statusMsg);
     
-    // Resize canvas
-    // Ensure canvas is large enough for padding
     const minSize = 400;
     const maxSize = Math.min(window.innerWidth - 60, 800);
     const size = Math.max(minSize, maxSize);
@@ -51,8 +70,6 @@ function startGame() {
     canvas.width = size;
     canvas.height = size;
     
-    // Recalculate cell size based on new padding
-    // Available width = total width - 2 * padding
     cellSize = (canvas.width - 2 * padding) / (boardSize - 1);
     
     drawBoard(result.board);
@@ -65,17 +82,15 @@ function handleBoardClick(e) {
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Convert pixel to grid coordinates
     const col = Math.round((x - padding) / cellSize);
     const row = Math.round((y - padding) / cellSize);
 
-    // Simple bounds check to prevent clicking way outside
     const clickX = padding + col * cellSize;
     const clickY = padding + row * cellSize;
     const dist = Math.sqrt((x-clickX)**2 + (y-clickY)**2);
     
     if (dist > cellSize / 2) {
-        return; // Clicked too far from intersection
+        return; 
     }
 
     if (row >= 0 && row < boardSize && col >= 0 && col < boardSize) {
@@ -86,12 +101,36 @@ function handleBoardClick(e) {
         } else if (result.valid) {
             drawBoard(result.board);
             if (result.gameOver) {
-                gameActive = false;
-                updateStatus(`Game Over! Winner: ${result.winner}`);
+                endGame(result.winner);
             } else {
                 updateStatus(`Your Turn (${userColor === 1 ? 'Black' : 'White'})`);
             }
         }
+    }
+}
+
+function endGame(winnerName) {
+    gameActive = false;
+    const overlay = document.getElementById('gameOverOverlay');
+    const msg = document.getElementById('endMessage');
+    
+    overlay.classList.add('visible');
+    
+    // Determine if Bot Won
+    // Bot is Black (1) if User is White (2)
+    // Bot is White (2) if User is Black (1)
+    
+    let botWon = false;
+    if (userColor === 1 && winnerName.includes("White")) botWon = true; 
+    if (userColor === 2 && winnerName.includes("Black")) botWon = true;
+
+    if (botWon) {
+        msg.innerText = "Congratulations!";
+        msg.className = "message win";
+        fireworkEffect.start();
+    } else {
+        msg.innerText = "Defeat";
+        msg.className = "message loss";
     }
 }
 

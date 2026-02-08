@@ -76,7 +76,89 @@ select {
     width: 140px;
     cursor: pointer;
 }
+/* Overlay for Game Over */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+    flex-direction: column;
+}
 
+.overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.message {
+    font-size: 4rem;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 2rem;
+    animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.message.win {
+    background: linear-gradient(to right, #facc15, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(250, 204, 21, 0.3);
+}
+
+.message.loss {
+    background: linear-gradient(to right, #94a3b8, #cbd5e1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(148, 163, 184, 0.3);
+}
+
+.restart-btn {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    background: var(--accent-color);
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #0f172a;
+    box-shadow: 0 0 20px rgba(56, 189, 248, 0.5);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: fadeIn 1s ease 0.5s forwards;
+    opacity: 0;
+}
+
+.restart-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(56, 189, 248, 0.8);
+}
+
+#fireworksCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+}
+
+@keyframes popIn {
+    0% { transform: scale(0.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
 button {
     background: var(--accent-color);
     color: #0f172a;
@@ -106,9 +188,13 @@ button:hover {
     margin-top: 1rem;
 }
 
-canvas {
+#goBoard {
     background-color: var(--board-color);
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     border-radius: 4px;
     cursor: crosshair;
+}
+
+#fireworksCanvas {
+    background: transparent;
 }
