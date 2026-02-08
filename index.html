@@ -4,11 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Go Bot - Epsilon</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
+    <div class="overlay" id="gameOverOverlay">
+        <div class="message" id="endMessage">Game Over</div>
+        <div class="winner-text" id="winnerText"></div>
+        <button class="restart-btn" id="restartBtn">Play Again</button>
+    </div>
+
     <div class="container">
         <h1>Epsilon Go Bot</h1>
+        <p class="goal-text">Your Goal: Make the Bot Win!</p>
+
         <div class="controls">
             <div class="control-group">
                 <label for="boardSize">Board Size (N):</label>
@@ -29,15 +37,18 @@
         </div>
     </div>
     
-    <div id="gameOverOverlay" class="overlay">
-        <div id="endMessage" class="message"></div>
-        <button id="restartBtn" class="restart-btn">Play Again</button>
-    </div>
-    
     <canvas id="fireworksCanvas"></canvas>
 
     <script src="wasm_exec.js"></script>
-    <script src="fireworks.js"></script>
-    <script src="script.js"></script>
+    <script src="fireworks.js?v=3"></script>
+    <script src="script.js?v=3"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("main.wasm?v=3"), go.importObject).then((result) => {
+            mod = result.module;
+            inst = result.instance;
+            go.run(inst);
+        });
+    </script>
 </body>
 </html>

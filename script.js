@@ -137,6 +137,9 @@ function endGame(winnerName) {
     gameActive = false;
     const overlay = document.getElementById('gameOverOverlay');
     const msg = document.getElementById('endMessage');
+    const winnerText = document.getElementById('winnerText');
+
+    winnerText.innerText = `Winner: ${winnerName}`;
     
     overlay.classList.add('visible');
     
